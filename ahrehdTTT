@@ -28,30 +28,26 @@ form_class = uic.loadUiType('NewMacroUI.ui')[0]
 url1 = 'https://www.ycs.or.kr/fmcs/4'
 url2 = 'https://www.ycs.or.kr/fmcs/4?action=write_proc'
 
+phoneNumber = '01063327323'
+
 def Reservation(self):
-    # retry_strategy = Retry(
-    #     total=3,
-    #     backoff_factor=1,
-    #     status_forcelist=[500, 502, 503, 504]
-    # )
-
-    # adapter = HTTPAdapter(max_retries=retry_strategy)
-    # http = requests.Session()
-    # http.mount("https://", adapter)
-    # http.mount("http://", adapter)
-
+    # login page url
     login_url = 'https://www.ycs.or.kr/fmcs/133?referer=%2Ffmcs%2F132'
+
+    # createNumber url
+    createNumberUrl = 'https://www.ycs.or.kr/macro_block/createNumber'
 
     # 세션 객체 생성
     session = requests.Session()
-    # client = httpx.Client(verify=False)
 
+    # 로그인 페이지 Open 해서 SecurityToken 가져오기
     login_page = session.get(login_url, verify=False)
 
+    # 로그인 폼 파싱
     soup = BeautifulSoup(login_page.text, 'html.parser')
     security_token = soup.find('input', {'name': 'SecurityToken'}).get('value')
 
-    # 로그인 폼 파싱
+    # login data
     login_data = {
         'SecurityToken': security_token,
         'user_id': self.selectedLoginUserInfo['id'],
@@ -78,9 +74,12 @@ def Reservation(self):
         self.stopMacroAction()
         return
 
+    # 로그인 성공하여, 매크로 시작
     self.setLog('매크로 돌리는 중...')
 
+    # part_cd, place_cd 정보를 self.xxx에 저장함
     macroInfoList = self.macroInfoList
+    session.get('https://www.ycs.or.kr/macro_block/sub/checkAuthentication', verify=False)
 
     # 대표자
     teamName = self.cb_Users.currentText()
@@ -95,47 +94,7 @@ def Reservation(self):
     # 종료 시간
     endTime = int(self.cb_EndTime.currentText().split(':')[0])
 
-    timeText = getTimeNo(macroInfoList, int(startTime), int(endTime), int(startCourt), self.isWeek)
-    try:
-        if self.isStart:
-            data = setReservationData1(str(startCourt), timeText, str(usedDate))
-
-            response = session.post(url1, params=data, verify=False)
-
-            if response.status_code == 200:
-                if response.text.__contains__('동일 아이디가 접속 중입니다.'):
-                    self.setLog('동일 아이디가 접속 중입니다.')
-                    self.stopMacroAction()
-                elif response.text.__contains__('예약제한 1회를 초과하였습니다.'):
-                    self.setLog('예약제한 1회를 초과하였습니다.')
-                    self.stopMacroAction()
-                elif response.text.__contains__('예약 가능일(시간)이 아닙니다.'):
-                    self.setLog('예약 가능일(시간)이 아닙니다.')
-
-                isCheckRes = possibleReservationCheck(startCourt, usedDate, startTime, endTime, self.isWeek)
-
-                if not isCheckRes:
-                    return
-
-                self.setLog('빈 코트 발견! 예약 시도 중...')
-
-                soup = BeautifulSoup(response.text, 'html.parser')
-                mobileTel = getInputValue(soup, 'input', 'mobile_tel')
-                phoneNum = '01063327323'  # mobileTel.replace('-', '')
-
-                params = {"phone_number": phoneNum}
-                phoneVerifyRes = requests.post('https://www.ycs.or.kr/macro_block/createNumber',
-                                               headers=setReservationHeader2(), data=json.dumps(params),
-                                               verify=False)
-
-                if phoneVerifyRes.status_code == 200 and phoneVerifyRes.text == 'OK':
-                    smsVerificationResult = checkVerificationCode(phoneNum)
-                    print(smsVerificationResult)
-    except Exception as e:
-        print(e)
-
-    return
-
+    # 시작 코트와 종료 코트가 다른경우 -> 취소건 잡는 것
     if str(startCourt) != str(endCourt):
         for infinite in range(10000000000):
             courtNumberUp = int(startCourt)
@@ -163,7 +122,6 @@ def Reservation(self):
                             isCheckRes = possibleReservationCheck(startCourt, usedDate, startTime, endTime, self.isWeek)
 
                             if not isCheckRes:
-                                # self.setLog('예약이 이미 존재 합니다.')
                                 continue
 
                             self.setLog('빈 코트 발견! 예약 시도 중...')
@@ -171,28 +129,34 @@ def Reservation(self):
                             soup = BeautifulSoup(response.text, 'html.parser')
                             mobileTel = getInputValue(soup, 'input', 'mobile_tel')
                             phoneNum = mobileTel.replace('-', '')
-                            print(phoneNum)
-                            params = {"phone_number": phoneNum}
-                            phoneVerifyRes = requests.post('https://www.ycs.or.kr/macro_block/createNumber',
-                                                           headers=setReservationHeader2(), data=json.dumps(params),
-                                                           verify=False)
+
+                            FMCSSESSIONID = session.cookies['FMCSSESSIONID']
+                            JSESSIONID = session.cookies['JSESSIONID']
+
+                            session.get('https://www.ycs.or.kr/macro_block?phoneNumber=' + phoneNum)
+
+                            params = {"phone_number": phoneNumber} # 추후 본인 계정으로 예약 시 phoneNum 사용
+
+                            phoneVerifyRes = session.post(createNumberUrl,
+                                                          headers=setReservationHeader3(FMCSSESSIONID, JSESSIONID),
+                                                          data=json.dumps(params),
+                                                          verify=False)
 
                             if phoneVerifyRes.status_code == 200 and phoneVerifyRes.text == 'OK':
-                                self.setLog('문자 메시지 전송을 완료 했습니다.\n3초 후 예약 완료 됩니다.')
+                                smsVerificationResult = checkVerificationCode(phoneNum, session, FMCSSESSIONID,
+                                                                              JSESSIONID)
+                                if smsVerificationResult:
+                                    headers = setReservationHeader(FMCSSESSIONID, JSESSIONID)
+                                    data = setReservationInfo(soup, teamName)
+                                    response2 = session.post(url2, headers=headers, params=data, verify=False)
 
-                            time.sleep(3)
-
-                            headers = setReservationHeader()
-                            data = setReservationInfo(soup, teamName)
-                            response2 = session.post(url2, headers=headers, params=data, verify=False)
-
-                            if response2.status_code == 200:
-                                if response2.text.__contains__('테니스 코트 무단 양도'):
-                                    self.setLog('계정이 정지되었습니다. 다른 계정으로 시도하세요.')
-                                    self.stopMacroAction()
-                                else:
-                                    self.setLog('예약 시도 성공!')
-                                    courtNumberUp += 1
+                                    if response2.status_code == 200:
+                                        if response2.text.__contains__('테니스 코트 무단 양도'):
+                                            self.setLog('계정이 정지되었습니다. 다른 계정으로 시도하세요.')
+                                            self.stopMacroAction()
+                                        else:
+                                            self.setLog('예약 시도 성공!')
+                                            courtNumberUp += 1
                         else:
                             courtNumberUp += 1
                     else:
@@ -233,24 +197,32 @@ def Reservation(self):
 
                         soup = BeautifulSoup(response.text, 'html.parser')
                         mobileTel = getInputValue(soup, 'input', 'mobile_tel')
-                        phoneNum = '01063327323'# mobileTel.replace('-', '')
+                        phoneNum = mobileTel.replace('-', '')
 
-                        params = {"phone_number": phoneNum}
-                        phoneVerifyRes = requests.post('https://www.ycs.or.kr/macro_block/createNumber', headers=setReservationHeader2(), data=json.dumps(params), verify=False)
+                        FMCSSESSIONID = session.cookies['FMCSSESSIONID']
+                        JSESSIONID = session.cookies['JSESSIONID']
+
+                        session.get('https://www.ycs.or.kr/macro_block?phoneNumber=' + phoneNum)
+
+                        params = {"phone_number": phoneNumber} # 추후 본인 계정으로 예약 시 phoneNum 사용
+
+                        phoneVerifyRes = session.post(createNumberUrl, headers=setReservationHeader3(FMCSSESSIONID, JSESSIONID),
+                                                      data=json.dumps(params),
+                                                      verify=False)
 
                         if phoneVerifyRes.status_code == 200 and phoneVerifyRes.text == 'OK':
-                            checkVerificationCode(phoneNum)
+                            smsVerificationResult = checkVerificationCode(phoneNum, session, FMCSSESSIONID, JSESSIONID)
+                            if smsVerificationResult:
+                                headers = setReservationHeader(FMCSSESSIONID, JSESSIONID)
+                                data = setReservationInfo(soup, teamName)
+                                response2 = session.post(url2, headers=headers, params=data, verify=False)
 
-                        # headers = setReservationHeader()
-                        # data = setReservationInfo(soup, teamName)
-                        # response2 = session.post(url2, headers=headers, params=data, verify=False)
-                        #
-                        # if response2.status_code == 200:
-                        #     if response2.text.__contains__('테니스 코트 무단 양도'):
-                        #         self.setLog('계정이 정지되었습니다. 다른 계정으로 시도하세요.')
-                        #         self.stopMacroAction()
-                        #     else:
-                        #         self.setLog('예약 시도 성공!')
+                                if response2.status_code == 200:
+                                    if response2.text.__contains__('테니스 코트 무단 양도'):
+                                        self.setLog('계정이 정지되었습니다. 다른 계정으로 시도하세요.')
+                                        self.stopMacroAction()
+                                    else:
+                                        self.setLog('예약 시도 성공!')
                 else:
                     session.get('https://www.ycs.or.kr/fmcs/137', verify=False)
                     session.close()
@@ -261,42 +233,39 @@ def Reservation(self):
 
                 pass
 
-def checkVerificationCode(phoneNumber):
-    time.sleep(2)
+def checkVerificationCode(phoneNumber, session, FMCSSESSIONID, JSESSIONID):
     isRes = False
 
-    botToken = 'xoxb-5197513462115-5357951523686-k0eeEia8hHf0thwNDkE0cILB'
+    # botToken = 'input bot Token'
 
-    client = WebClient(token=botToken)
+    # client = WebClient(token=botToken)
 
     try:
         count = 0
         isOk = False
         while not isOk:
             count += 1
-            response = client.conversations_history(channel="C055M10JWF8", limit=10)
-            messages = response["messages"]
-            mesText = messages[0]['text']
+            # response = client.conversations_history(channel="C055M10JWF8", limit=10)
+            # messages = response["messages"]
+            # mesText = messages[0]['text']
 
             try:
-                verificationCode = mesText.split('\n')[5].strip()
+                verificationCode = input('인증 번호를 입력하세요.') # mesText.split('\n')[5].strip()
 
                 data = {
                     "check_number": verificationCode,
                     "phone_number": phoneNumber
                 }
 
-                print(data)
-                print(json.dumps(data))
-                phoneVerifyCheckRes = requests.post('https://www.ycs.or.kr/macro_block/checkNumber', headers=setReservationHeader3(), params=json.dumps(data), verify=False)
+                phoneVerifyCheckRes = session.post('https://www.ycs.or.kr/macro_block/checkNumber', headers=setReservationHeader3(FMCSSESSIONID, JSESSIONID), data=json.dumps(data), verify=False)
 
-                print(phoneVerifyCheckRes.text)
-                print(phoneVerifyCheckRes.status_code)
-                if phoneVerifyCheckRes.status_code == 200 and phoneVerifyCheckRes.text == 'OK':
+                if phoneVerifyCheckRes.status_code == 200 and phoneVerifyCheckRes.text == 'success':
                     isOk = True
                     isRes = True
                 elif count > 10:
                     isOk = True
+                else:
+                    print('인증번호가 올바르지 않습니다.\n다시 입력하세요.\n')
             except IndexError:
                 continue
 
@@ -481,30 +450,25 @@ def setReservationData2(security_token, place_code, mem_no, start_date, end_date
 
     return data
 
-def setReservationHeader2():
+def setReservationHeader2(FMCSSESSIONID, JSESSIONID):
+    cookie = '_ga=GA1.3.1956370294.1647303756; FMCSSESSIONID=' + FMCSSESSIONID + '; JSESSIONID=' + JSESSIONID
+
     data = {
         "Accept": "*/*",
         "Accept-Encoding": "gzip, deflate, br",
         "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
-        "Content-Type": "application/json; charset=utf-8",
-        "Sec-Fetch-Dest": "empty",
-        "Sec-Fetch-Mode": "cors",
-        "Sec-Fetch-Site": "same-origin",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36"
-    }
-
-    return data
-
-def setReservationHeader3():
-    data = {
-        "Accept": "*/*",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "Content-Length": "20",
         "Content-Type": "application/json",
-        'Host': 'www.ycs.or.kr',
-        'Origin': 'https://www.ycs.or.kr',
-        'Pragma': 'no-cache',
-        'Referer': 'https: // www.ycs. or.kr / macro_block / pc',
+        "Cookie": cookie,
+        "Host": "www.ycs.or.kr",
+        "Origin": "https://www.ycs.or.kr",
+        "Pragma": "no-cache",
+        "Referer": "https://www.ycs.or.kr/macro_block/pc",
+        "sec-ch-ua": "\"Chromium\";v=\"114\", \"Google Chrome\";v=\"114\", \"Not:A-Brand\";v=\"8\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\"",
         "Sec-Fetch-Dest": "empty",
         "Sec-Fetch-Mode": "cors",
         "Sec-Fetch-Site": "same-origin",
@@ -514,11 +478,28 @@ def setReservationHeader3():
 
     return data
 
-def setReservationHeader():
+def setReservationHeader3(FMCSSESSIONID, JSESSIONID):
+    cookie = '_ga=GA1.3.1956370294.1647303756; FMCSSESSIONID=' + FMCSSESSIONID + '; JSESSIONID=' + JSESSIONID
+
+    data = {
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Cookie": cookie,
+        "Cache-Control": "no-cache",
+        "Content-Type": "application/json",
+    }
+
+    return data
+
+def setReservationHeader(FMCSSESSIONID, JSESSIONID):
+    cookie = '_ga=GA1.3.1956370294.1647303756; FMCSSESSIONID=' + FMCSSESSIONID + '; JSESSIONID=' + JSESSIONID
+
     data = {
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3; q=0.7",
         "Accept-Encoding": "gzip, deflate, br",
         "Accept-Language": "en-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Cookie": cookie,
         "Cache-Control": "no-cache",
         "Connection": "keep-alive",
         "Content-Type": "multipart/form-data; boundary=----WebKitFormBoundary9U2pEnbqCE0ZGdm3",
