@@ -191,6 +191,9 @@ def Worker123(self, startCourt, endCourt, usedDate, startTime, endTime, teamName
                             WebDriverWait(_driver, 10).until(EC.alert_is_present())
                             Alert(_driver).accept()  # 확인 버튼 클릭
 
+                            script = ("document.getElementById('check_number').focus()")
+                            _driver.execute_script(script)
+                            
                             # 텍스트 상자에 길이가 5이고 숫자인 값이 입력 될 때까지 대기합니다.
                             textbox = wait.until(EC.element_to_be_clickable((By.ID, 'check_number')))
                             wait.until(
@@ -203,7 +206,7 @@ def Worker123(self, startCourt, endCourt, usedDate, startTime, endTime, teamName
 
                             _driver.execute_script(script)
 
-                            alert2 = WebDriverWait(_driver, 10).until(EC.alert_is_present())
+                            alert2 = WebDriverWait(_driver, 20).until(EC.alert_is_present())
 
                             if alert2.text == '인증번호가 올바르지 않습니다':
                                 Alert(_driver).accept()  # 확인 버튼 클릭
@@ -211,6 +214,9 @@ def Worker123(self, startCourt, endCourt, usedDate, startTime, endTime, teamName
                                 script = (f"document.getElementById('check_number').value='{''}';")
                                 _driver.execute_script(script)
 
+                                script = ("document.getElementById('check_number').focus()")
+                                _driver.execute_script(script)
+                                
                                 # 텍스트 상자에 길이가 5이고 숫자인 값이 입력 될 때까지 대기합니다.
                                 textbox = wait.until(EC.element_to_be_clickable((By.ID, 'check_number')))
                                 wait.until(
@@ -225,7 +231,7 @@ def Worker123(self, startCourt, endCourt, usedDate, startTime, endTime, teamName
 
                                 _driver.execute_script(script)
 
-                                alert3 = WebDriverWait(_driver, 10).until(EC.alert_is_present())
+                                alert3 = WebDriverWait(_driver, 20).until(EC.alert_is_present())
                                 if alert3.text == '인증번호가 올바르지 않습니다':
                                     _driver.close()
                                     _driver.switch_to.window(parent_window)
@@ -240,7 +246,7 @@ def Worker123(self, startCourt, endCourt, usedDate, startTime, endTime, teamName
                                     getRandomTime(self, 5)
                                     _driver.execute_script(script)
 
-                                    WebDriverWait(_driver, 10).until(EC.alert_is_present())
+                                    WebDriverWait(_driver, 20).until(EC.alert_is_present())
                                     Alert(_driver).accept()  # 확인 버튼 클릭
                             else:
                                 Alert(_driver).accept()  # 확인 버튼 클릭
@@ -253,7 +259,7 @@ def Worker123(self, startCourt, endCourt, usedDate, startTime, endTime, teamName
                                 getRandomTime(self, 5)
                                 _driver.execute_script(script)
 
-                                WebDriverWait(_driver, 10).until(EC.alert_is_present())
+                                WebDriverWait(_driver, 20).until(EC.alert_is_present())
                                 Alert(_driver).accept()  # 확인 버튼 클릭
                             courtNumberUp += 1
                         except:
@@ -428,6 +434,9 @@ def Worker123(self, startCourt, endCourt, usedDate, startTime, endTime, teamName
                         WebDriverWait(_driver, 10).until(EC.alert_is_present())
                         Alert(_driver).accept()  # 확인 버튼 클릭
 
+                        script = ("document.getElementById('check_number').focus()")
+                        _driver.execute_script(script)
+
                         # 텍스트 상자에 길이가 5이고 숫자인 값이 입력 될 때까지 대기합니다.
                         textbox = wait.until(EC.element_to_be_clickable((By.ID, 'check_number')))
                         wait.until(
@@ -440,7 +449,7 @@ def Worker123(self, startCourt, endCourt, usedDate, startTime, endTime, teamName
 
                         _driver.execute_script(script)
 
-                        alert2 = WebDriverWait(_driver, 10).until(EC.alert_is_present())
+                        alert2 = WebDriverWait(_driver, 20).until(EC.alert_is_present())
 
                         if alert2.text == '인증번호가 올바르지 않습니다':
                             Alert(_driver).accept()  # 확인 버튼 클릭
@@ -448,7 +457,10 @@ def Worker123(self, startCourt, endCourt, usedDate, startTime, endTime, teamName
                             script = (f"document.getElementById('check_number').value='{''}';")
                             _driver.execute_script(script)
 
-                            # 텍스트 상자에 길이가 5이고 숫자인 값이 입력 될 때까지 대기합니다.
+                            script = ("document.getElementById('check_number').focus()")
+                            _driver.execute_script(script)
+
+                            # 텍스트 상자에 길이가 6이고 숫자인 값이 입력 될 때까지 대기합니다.
                             textbox = wait.until(EC.element_to_be_clickable((By.ID, 'check_number')))
                             wait.until(
                                 lambda driver: len(
@@ -462,7 +474,7 @@ def Worker123(self, startCourt, endCourt, usedDate, startTime, endTime, teamName
 
                             _driver.execute_script(script)
 
-                            alert3 = WebDriverWait(_driver, 10).until(EC.alert_is_present())
+                            alert3 = WebDriverWait(_driver, 20).until(EC.alert_is_present())
                             if alert3.text == '인증번호가 올바르지 않습니다':
                                 _driver.close()
                                 _driver.switch_to.window(parent_window)
@@ -477,7 +489,7 @@ def Worker123(self, startCourt, endCourt, usedDate, startTime, endTime, teamName
                                 getRandomTime(self, 5)
                                 _driver.execute_script(script)
 
-                                WebDriverWait(_driver, 10).until(EC.alert_is_present())
+                                WebDriverWait(_driver, 20).until(EC.alert_is_present())
                                 Alert(_driver).accept()  # 확인 버튼 클릭
                         else:
                             Alert(_driver).accept()  # 확인 버튼 클릭
@@ -490,7 +502,7 @@ def Worker123(self, startCourt, endCourt, usedDate, startTime, endTime, teamName
                             getRandomTime(self, 5)
                             _driver.execute_script(script)
 
-                            WebDriverWait(_driver, 10).until(EC.alert_is_present())
+                            WebDriverWait(_driver, 20).until(EC.alert_is_present())
                             Alert(_driver).accept()  # 확인 버튼 클릭
                     except:
                         _driver.switch_to.window(parent_window)
@@ -502,20 +514,20 @@ def Worker123(self, startCourt, endCourt, usedDate, startTime, endTime, teamName
                 pass
 
 # 랜덤 시간으로 Delay를 줌
-# step 1. QR 번호 입력 후 버튼 클릭 까지 Delay - 0.6s ~ 1s
-# step 2. QR 번호 인증 버튼 예약 버튼 클릭 까지 Delay - 0.5s ~ 0.9s
-# step 3. 예약 페이지 들어가고, 다 입력 하고 핸드폰 인증 버튼 클릭까지 Delay - 0.8s ~ 1.2s
-# step 4. 예약 페이지 들어 간 후 핸드폰 인증 버튼 클릭 후 핸드폰 인증 문자 발송 버튼 클릭 Delay default로 5초가 소요 되며, 인증 클릭 까지 0.5s ~ 0.7s
-# step 5. 발송 이후 번호 입력 후 인증 완료 - 0.2s ~ 0.8s
-# step 6. 인증 완료 후 예약 하기 버튼 클릭 까지 Delay - 0.5s ~ 0.8s
+# step 1. QR 번호 입력 후 버튼 클릭 까지 Delay
+# step 2. QR 번호 인증 버튼 예약 버튼 클릭 까지 Delay
+# step 3. 예약 페이지 들어가고, 다 입력 하고 핸드폰 인증 버튼 클릭까지 Delay
+# step 4. 예약 페이지 들어 간 후 핸드폰 인증 버튼 클릭 후 핸드폰 인증 문자 발송 버튼 클릭 Delay default로 5초가 소요 되며, 인증 클릭 까지 Delay
+# step 5. 발송 이후 번호 입력 후 인증 완료 까지 Delay
+# step 6. 인증 완료 후 예약 하기 버튼 클릭 까지 Delay
 def getRandomTime(self, step):
     stepDelayObjs = {
-        '0': [0.6, 1],
-        '1': [0.5, 0.9],
-        '2': [0.8, 1.2],
-        '3': [0.5, 0.7],
-        '4': [0.2, 0.8],
-        '5': [0.5, 0.8]
+        '0': [0.2, 0.5],
+        '1': [0.3, 0.6],
+        '2': [0.2, 0.6],
+        '3': [0.3, 0.5],
+        '4': [0.2, 0.3],
+        '5': [0.3, 0.7]
     }
 
     startDelay = stepDelayObjs[str(step)][0]
